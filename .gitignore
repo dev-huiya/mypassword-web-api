@@ -32,5 +32,10 @@ build/
 ### VS Code ###
 .vscode/
 
+### Gradle ###
+.gradle
+**/build/
+!src/**/build/
+
 ### 개발 서버 파일 업로드 경로 ###
 /FILES
