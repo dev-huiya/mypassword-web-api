@@ -2,9 +2,11 @@ package me.huiya.core.Entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import me.huiya.core.Entity.AESCryptConverter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
@@ -28,7 +30,7 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // AUTO_INCREMENT
     @Column(name = "user_id", nullable = false)
-//    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // Controller에서 값 자동 리턴시 Json에 포함되지 않도록 예외처리
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // Controller에서 값 자동 리턴시 Json에 포함되지 않도록 예외처리
     private Integer userId;
 
     @Column(length = 255, nullable = false)
@@ -52,16 +54,8 @@ public class User {
     private Date createTime;
 
     @Column(length = 255, nullable = true)
-//    @Convert(converter = AESCryptConverter.class) // 암호화
+    @Convert(converter = AESCryptConverter.class) // 암호화
     private String nickName;
-
-    @Column(length = 255, nullable = true)
-    @Convert(converter = AESCryptConverter.class) // 암호화
-    private String name;
-
-    @Column(length = 50, nullable = true)
-    @Convert(converter = AESCryptConverter.class) // 암호화
-    private String phone;
 
     @Column(length = 110, nullable = true)
     @Convert(converter = AESCryptConverter.class) // 암호화

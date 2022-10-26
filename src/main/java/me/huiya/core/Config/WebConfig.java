@@ -1,12 +1,28 @@
 package me.huiya.core.Config;
 
+import me.huiya.core.Common.JWTManager;
+import me.huiya.core.Repository.TokenRepository;
+import me.huiya.core.Repository.UserRepository;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.beans.ConstructorProperties;
+
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+
+    private static JwtAuthInterceptor JwtAuthInterceptor;
+
+    @ConstructorProperties({
+        "JwtAuthInterceptor",
+    })
+    public WebConfig(
+        JwtAuthInterceptor JwtAuthInterceptor
+    ) {
+        this.JwtAuthInterceptor = JwtAuthInterceptor;
+    }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -37,7 +53,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new JwtAuthInterceptor())
+        registry.addInterceptor(JwtAuthInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(INTERCEPTOR_WHITE_LIST);
     }

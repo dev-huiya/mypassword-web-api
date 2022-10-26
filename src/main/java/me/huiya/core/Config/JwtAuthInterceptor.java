@@ -3,16 +3,30 @@ package me.huiya.core.Config;
 import me.huiya.core.Common.JWTManager;
 import me.huiya.core.Exception.AuthRequiredException;
 import me.huiya.core.Exception.ManagerAuthorityRequiredException;
+import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.beans.ConstructorProperties;
 import java.util.HashMap;
 
+@Component
 public class JwtAuthInterceptor implements HandlerInterceptor {
 
     private static final String HEADER_TOKEN_KEY = "Bearer ";
+
+    private static JWTManager JWTManager;
+
+    @ConstructorProperties({
+        "JWTManager",
+    })
+    public JwtAuthInterceptor(
+        JWTManager JWTManager
+    ) {
+        this.JWTManager = JWTManager;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {

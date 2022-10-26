@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.beans.ConstructorProperties;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -49,6 +50,10 @@ public class FileManager {
 
     // Autowired 대신 추천되는 의존성 주입 방식
     private static FileRepository FileRepo;
+
+    @ConstructorProperties({
+        "FileRepository",
+    })
     public FileManager(FileRepository FileRepo) { this.FileRepo = FileRepo; }
 
     /**

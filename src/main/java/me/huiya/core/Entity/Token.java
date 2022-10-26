@@ -33,6 +33,11 @@ public class Token {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Integer userId;
 
+    @Column(length = 84) // IPv6 45자 암호화시 84
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // Controller에서 값 자동 리턴시 Json에 포함되지 않도록 예외처리
+    @Convert(converter = AESCryptConverter.class) // 암호화
+    private String ipAddress;
+
     @Column(length = 255, nullable = false)
     @Convert(converter = AESCryptConverter.class) // 암호화
     @NotNull

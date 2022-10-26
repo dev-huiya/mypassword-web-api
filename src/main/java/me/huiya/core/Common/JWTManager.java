@@ -11,11 +11,13 @@ import me.huiya.core.Encrypt.RSAUtils;
 import me.huiya.core.Entity.Token;
 import me.huiya.core.Entity.User;
 import me.huiya.core.Exception.AuthRequiredException;
+import me.huiya.core.Exception.ParamRequiredException;
 import me.huiya.core.Exception.TokenExpiredException;
 import me.huiya.core.Repository.TokenRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.xml.crypto.Data;
+import java.beans.ConstructorProperties;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -27,30 +29,64 @@ import java.util.Base64;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.function.Consumer;
 
 @Component
 public class JWTManager {
 
-    private static final String HEADER_TOKEN_KEY = "Bearer ";
+    private final String HEADER_TOKEN_KEY = "Bearer ";
+
+    private String UI_SERVER_URL;
+    private String API_SERVER_URL;
+
+    @Value("${core.SERVER.UI}")
+    public void setUiServerUrl(String uiServerUrl) { UI_SERVER_URL = uiServerUrl; }
+
+    @Value("${core.SERVER.API}")
+    public void setApiServerUrl(String apiServerUrl) { API_SERVER_URL = apiServerUrl; }
 
     // Autowired 대신 추천되는 의존성 주입 방식
-    private static TokenRepository TokenRepo;
+    private TokenRepository TokenRepo;
+
+    @ConstructorProperties({
+        "TokenRepository",
+    })
     public JWTManager(TokenRepository TokenRepo) {
         this.TokenRepo = TokenRepo;
     }
 
     /**
-     * 토큰을 생성하고 DB에 저장한다.
-     *
-     * @param user 유저 정보
-     * @param userAgent 토큰 생성을 요청한 유저 에이전트 정보
-     * @return Token 객체
+     * 토큰을 생성하고 DB에 입력한다.
+     * @param isAutoLogin refresh token 생성 여부
+     * @param data db 저장시 참조할 값. 동시에 모든 값이 info claim에 입력됨. 다른 타입 필요시 setClaim 수동 설정 할 것.
+     * @return
      */
-    public static Token create(User user, String userAgent, Boolean isAutoLogin) {
+    public Token create(Boolean isAutoLogin, User user, HashMap<String, Object> data) throws ParamRequiredException {
+        Token token  = this._create(isAutoLogin, user, (_data) -> {
+           data.forEach((key, value) -> {
+               _data.put(key, value);
+           });
+        });
 
-        if(user.getUserId() <= 0) {
-            // 사용자 고유값이 없으면 사용자 정보가 없다고 판정하고 토큰 생성하지 않음.
-            return null;
+        return this.save(token, data);
+    }
+
+    /**
+     * 토큰을 생성하고 DB에 입력한다.
+     * @param isAutoLogin refresh token 생성 여부
+     * @param data db 저장시 참조할 값.
+     * @param setClaim info claim을 설정할 람다식
+     * @return
+     */
+    public Token create(Boolean isAutoLogin, User user, HashMap<String, Object> data, Consumer<HashMap<String, Object>> setClaim) throws ParamRequiredException {
+        Token token  = this._create(isAutoLogin, user, setClaim);
+
+        return this.save(token, data);
+    }
+
+    public Token _create(Boolean isAutoLogin, User user, Consumer<HashMap<String, Object>> setClaim) throws ParamRequiredException {
+        if(user == null || user.getUserId() <= 0) {
+            throw new ParamRequiredException("JWTManager:: A User is required to create a JWT token.");
         }
 
         try {
@@ -65,32 +101,22 @@ public class JWTManager {
             Calendar cal = Calendar.getInstance();
             cal.setTime(currentDate);
 
-            // access token 만료 시간은 12시간으로 설정
-            cal.add(Calendar.HOUR, 12);
+            // access token 만료 시간
+            cal.add(JWTManagerCommon.getAccessExpireTimeUnit(), JWTManagerCommon.getAccessExpireNumeric());
             Date accessExpireDate = cal.getTime();
 
             // 토큰에 넣을 유저 정보 준비
             HashMap<String, Object> userInfo = new HashMap<>();
 
-            // 민감한 정보
-            userInfo.put("id", AES256Util.encrypt(Integer.toString(user.getUserId())));
-
-            // 평문 정보
-            userInfo.put("nickName", user.getNickName());
-//            userInfo.put("email", user.getEmail());
-//            userInfo.put("penName", user.getPenName());
-//            userInfo.put("lastDate",
-//                    user.getLastDate() instanceof Timestamp
-//                            ? new Date(user.getLastDate().getTime())
-//                            : user.getLastDate());
-//            userInfo.put("profile", user.getProfile() != null ? user.getProfile() : "");
+            // 토큰에 람다식으로 값 입력
+            setClaim.accept(userInfo);
 
             if(isAutoLogin) {
                 // 자동 로그인이 켜져있으면 refresh_token 발급
 
                 // refresh token 만료시간은 1주로 설정
                 cal.setTime(currentDate);
-                cal.add(Calendar.DATE, 7);
+                cal.add(JWTManagerCommon.getRefreshExpireTimeUnit(), JWTManagerCommon.getRefreshExpireNumeric());
                 refreshExpireDate = cal.getTime();
                 refreshToken = createRefreshToken();
                 userInfo.put("refreshToken", refreshToken);
@@ -100,30 +126,44 @@ public class JWTManager {
             // 토큰 생성
             Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) rsa.getPublicKey(), (RSAPrivateKey) rsa.getPrivateKey());
             String tokenStr = JWT.create()
-                    .withIssuer("api.tradeinfo.kr") // 토큰 발급자
-                    .withAudience("tradeinfo.kr") // 토큰 수신자
+                    .withIssuer(this.API_SERVER_URL) // 토큰 발급자
+                    .withAudience(this.UI_SERVER_URL) // 토큰 수신자
                     //.withNotBefore(refreshExpireDate) // 토큰 활성화 되는 시간 (미사용 예정)
                     .withIssuedAt(currentDate) // 토큰 발급시간
                     .withExpiresAt(accessExpireDate) // 토큰 만료시간
                     .withClaim("info", userInfo) // 유저 정보 토큰에 넣기
                     .sign(algorithm); // 토큰에 사이닝
 
-            // 토큰 정보 디비에 저장 준비
             token.setUserId(user.getUserId());
             token.setToken(tokenStr);
             token.setExpire(cal.getTime());
             token.setPublicKey(rsa.getPublic());
             token.setPrivateKey(rsa.getPrivate());
-            token.setBrowser(userAgent);
             token.setRefreshExpire(refreshExpireDate);
             token.setRefreshToken(refreshToken);
 
-            return TokenRepo.save(token);
+            return token;
         } catch (JWTCreationException e){
             //Invalid Signing configuration / Couldn't convert Claims.
             // throw new RuntimeException(e);
             return null;
         }
+    }
+
+    private Token save(Token token, HashMap<String, Object> data) {
+
+        if(data.containsKey("ip")) {
+            token.setIpAddress((String) data.get("ip"));
+        }
+        if(data.containsKey("user")) {
+            token.setUserId(((User) data.get("user")).getUserId());
+        }
+        if(data.containsKey("userAgent")) {
+            token.setBrowser((String) data.get("userAgent"));
+        }
+
+        // 토큰 정보 디비에 저장
+        return this.TokenRepo.save(token);
     }
 
     /**
@@ -132,7 +172,7 @@ public class JWTManager {
      * @param token 토큰
      * @return
      */
-    public static DecodedJWT verify(String token) throws Exception {
+    public DecodedJWT verify(String token) throws Exception {
 
         Token savedToken = TokenRepo.getTokenByToken(token.replace(HEADER_TOKEN_KEY, ""));
         if(savedToken == null) {
@@ -167,7 +207,7 @@ public class JWTManager {
      *
      * @return 랜덤한 문자열.
      */
-    public static String createRefreshToken() {
+    public String createRefreshToken() {
         String random = Common.createSecureRandom(20);
         Token result = TokenRepo.findTokenByRefreshToken(random);
 
@@ -185,14 +225,14 @@ public class JWTManager {
      * @return 토큰에 담겨있는 데이터 (userInfo)
      * @throws Exception
      */
-    public static HashMap<String, Object> read(String token) throws Exception {
+    public HashMap<String, Object> read(String token) throws Exception {
         HashMap<String, Object> info = null;
 
         if(token == null) {
             throw new AuthRequiredException("Required token");
         }
 
-        Claim jws = verify(token.replace(HEADER_TOKEN_KEY, "")).getClaim("info");
+        Claim jws = this.verify(token.replace(HEADER_TOKEN_KEY, "")).getClaim("info");
         if(jws != null) {
             info = (HashMap<String, Object>) jws.asMap();
             info.put("id", Integer.parseInt(AES256Util.decrypt((String) info.get("id"))));
