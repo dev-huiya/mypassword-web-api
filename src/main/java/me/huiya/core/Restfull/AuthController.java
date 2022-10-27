@@ -189,17 +189,17 @@ public class AuthController {
             return result;
         }
 
-        if(user.isEmailVerify() == false) {
-            result.setSuccess(false);
-            result.setMessage(Auth.EMAIL_VERIFY_REQUIRED);
-
-            HashMap<String, Object> hashMap = new HashMap<>();
-            hashMap.put("email", user.getEmail());
-            hashMap.put("name", user.getNickName());
-            result.setResult(hashMap);
-
-            return result;
-        }
+//        if(user.isEmailVerify() == false) {
+//            result.setSuccess(false);
+//            result.setMessage(Auth.EMAIL_VERIFY_REQUIRED);
+//
+//            HashMap<String, Object> hashMap = new HashMap<>();
+//            hashMap.put("email", user.getEmail());
+//            hashMap.put("name", user.getNickName());
+//            result.setResult(hashMap);
+//
+//            return result;
+//        }
 
         user = UserRepo.save(user);
 

@@ -1,78 +1,61 @@
-package kr.njbridge.tradeinfo.Restfull;
+package me.huiya.core.Restfull;
 
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kr.njbridge.core.Common.Common;
-import kr.njbridge.core.Common.CommonObjectUtils;
-import kr.njbridge.core.Common.FileManager;
-import kr.njbridge.core.Config.ManagerAuthority;
-import kr.njbridge.core.Config.WithOutAuth;
-import kr.njbridge.core.Exception.ParamMismatchException;
-import kr.njbridge.core.Exception.ServerErrorException;
-import kr.njbridge.core.Service.Email;
-import kr.njbridge.core.Type.*;
-import kr.njbridge.tradeinfo.Entity.*;
-import kr.njbridge.tradeinfo.Entity.Verify;
-import kr.njbridge.tradeinfo.Repository.*;
-import kr.njbridge.tradeinfo.Service.UserManager;
-import kr.njbridge.core.Entity.Result;
-import kr.njbridge.core.Exception.ParamRequiredException;
-import kr.njbridge.core.Encrypt.SHA256Util;
-import kr.njbridge.core.Common.JWTManager;
-import org.springframework.data.domain.Page;
+import me.huiya.core.Common.Common;
+import me.huiya.core.Common.CommonObjectUtils;
+import me.huiya.core.Common.FileManager;
+import me.huiya.core.Common.JWTManager;
+import me.huiya.core.Config.WithOutAuth;
+import me.huiya.core.Encrypt.SHA256Util;
+import me.huiya.core.Entity.Result;
+import me.huiya.core.Entity.User;
+import me.huiya.core.Entity.Verify;
+import me.huiya.core.Exception.ParamRequiredException;
+import me.huiya.core.Repository.UserRepository;
+import me.huiya.core.Repository.VerifyRepository;
+import me.huiya.core.Service.Email;
+import me.huiya.core.Service.UserService;
+import me.huiya.core.Type.API;
+import me.huiya.core.Type.Auth;
+import me.huiya.core.Type.Type;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import java.beans.ConstructorProperties;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.net.URL;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping(value="/account")
-public class UserController {
+public class AccountController {
 
     // Autowired 대신 추천되는 의존성 주입 방식
-    private static RateRepository RateRepo;
     private static UserRepository UserRepo;
     private static Email EmailService;
-    private static PayRepository PayRepo;
     private static VerifyRepository VerifyRepo;
-    private static PaySimpleRepository PaySimpleRepo;
-    private static SnsRepository SnsRepo;
+    private static JWTManager JWTManager;
 
     @ConstructorProperties({
-        "RateRepository",
         "UserRepository",
         "Email",
-        "PayRepository",
         "VerifyRepository",
-        "PaySimpleRepository",
-        "SnsRepository",
+        "JWTManager",
     })
-    public UserController(
-        RateRepository RateRepo,
+    public AccountController(
         UserRepository UserRepo,
         Email EmailService,
-        PayRepository PayRepo,
         VerifyRepository VerifyRepo,
-        PaySimpleRepository PaySimpleRepo,
-        SnsRepository SnsRepo
+        JWTManager JWTManager
     ) {
-        this.RateRepo = RateRepo;
         this.UserRepo = UserRepo;
         this.EmailService = EmailService;
-        this.PayRepo = PayRepo;
         this.VerifyRepo = VerifyRepo;
-        this.PaySimpleRepo = PaySimpleRepo;
-        this.SnsRepo = SnsRepo;
+        this.JWTManager = JWTManager;
     }
 
     @GetMapping(value="/signup-check/email")
@@ -84,7 +67,7 @@ public class UserController {
         result.setMessage(Type.OK);
 
         HashMap<String, Object> hashMap = new HashMap<>();
-        hashMap.put("usage", UserManager.emailCheck(email));
+        hashMap.put("usage", UserService.emailCheck(email));
 
         result.setResult(hashMap);
         return result;
@@ -99,7 +82,7 @@ public class UserController {
         result.setMessage(Type.OK);
 
         HashMap<String, Object> hashMap = new HashMap<>();
-        hashMap.put("usage", UserManager.nickNameCheck(nickName));
+        hashMap.put("usage", UserService.nickNameCheck(nickName));
 
         result.setResult(hashMap);
         return result;
@@ -141,29 +124,8 @@ public class UserController {
 //            || password == null
             || nickName == null
             || nickName.equals("")
-            || name == null
-            || name.equals("")
-            || rate == null
-            || rate.equals("")
-            || phone == null
-            || phone.equals("")
-            || adAgree == null
-            || (ci.equals("")
-                && (
-                    password == null
-                    || password.equals("")
-                )
-            )
         ) {
         	throw new ParamRequiredException(null);
-        }
-
-        if(
-            snsType != null && !snsType.equals("")
-            && (ci == null)
-            // snsType이 있는데 ci가 없으면
-        ) {
-            throw new ParamMismatchException(null);
         }
 
         // 리캡챠 검증
@@ -175,23 +137,16 @@ public class UserController {
 //        }
 
         // 이메일 중복 검증
-        if(!UserManager.emailCheck(email)) {
+        if(!UserService.emailCheck(email)) {
             result.setSuccess(false);
             result.setMessage(Auth.JOIN_DUPLICATE);
             return result;
         }
 
         // 닉네임 중복 검증
-        if(!UserManager.nickNameCheck(nickName)) {
+        if(!UserService.nickNameCheck(nickName)) {
             result.setSuccess(false);
             result.setMessage(Auth.JOIN_DUPLICATE);
-            return result;
-        }
-
-        Rate rateEntity = RateRepo.findAllById(rate);
-        if(rateEntity == null) {
-            result.setSuccess(false);
-            result.setMessage(Type.INVALID_VALUE);
             return result;
         }
 
@@ -205,12 +160,7 @@ public class UserController {
         user.setSalt(salt);
 
         user.setNickName(nickName);
-        user.setName(name);
-        user.setPhone(phone);
         user.setEmailVerify(false);
-        user.setPoint(0);
-        user.setRate(rateEntity);
-        user.setAdAgree(adAgree);
 
         // 유저 저장
         user = UserRepo.save(user);
@@ -220,86 +170,12 @@ public class UserController {
         if(profile != null) {
             String hash = FileManager.save(profile, user.getUserId());
             user.setProfileImage(hash);
-            isUserEdit = true;
-        }
-
-        // sns 프로필 저장
-        if(
-            profile == null &&
-                profileImage != null && !profileImage.equals("")
-            // 업로드된 프로필이 없고 프로필 이미지 url만 입력될 경우
-        ) {
-
-//            byte[] _profile = Unirest.get(profileImage)
-//                .asBytes()
-//                .getBody();
-            HttpResponse<byte[]> response = Unirest.get(profileImage)
-                .asBytes();
-            byte[] _profile = response.getBody();
-
-            // get file name
-            String fileName = "profile-image.png";
-            String urlPath = (new URL(profileImage)).getPath();
-            String originalName = urlPath.substring(urlPath.lastIndexOf('/') + 1);
-            if(originalName.indexOf(".") >= 0) {
-                // 파일명에 .이 있어야 파일명이 아니라고 간주.
-                fileName = originalName;
-            }
-
-            // byte[]를 MultipartFile로 변환
-            MultipartFile multipartFile = new MockMultipartFile(fileName, _profile);
-
-            // 실제 저장
-            String hash = FileManager.save(multipartFile, user.getUserId());
-
-            // 파일 해시값 유저에 등록
-            user.setProfileImage(hash);
-            isUserEdit = true;
-        }
-
-        // 명함 저장
-        if(nameCard != null) {
-            String hash = FileManager.save(nameCard, user.getUserId());
-            user.setNameCard(hash);
-            isUserEdit = true;
-        }
-
-        // sns 정보 저장
-        if(snsType != null && !snsType.equals("")) {
-            // snsType이 있으면 ci가 있는건 보장됨. 위에서 검증했음.
-
-            Sns sns = new Sns();
-            sns.setType(snsType.toUpperCase());
-            sns.setCi(ci);
-            sns.setAccessToken(accessToken);
-            sns.setAccessTokenExpire(new Date(accessTokenExpire));
-            if(refreshToken != null) {
-                sns.setRefreshToken(refreshToken);
-            }
-            if(refreshTokenExpire != null) {
-                sns.setRefreshTokenExpire(new Date(refreshTokenExpire));
-            }
-            sns.setUser(user);
-            SnsRepo.save(sns);
-        }
-
-        // sns가 있고 이메일이 검증되었을 경우 인증메일 스킵
-        if(
-            snsType != null && !snsType.equals("")
-            && emailVerified == true
-        ) {
-            user.setEmailVerify(true);
-            isUserEdit = true;
-        } else {
-            // 이메일 인증 메일 발송
-            UserManager.sendJoinVerifyEmail(user);
-        }
-
-        if(isUserEdit == true) {
             UserRepo.save(user);
         }
 
-        UserManager.sendWelcomeMail(user);
+//        UserService.sendJoinVerifyEmail(user);
+//
+//        UserService.sendWelcomeMail(user);
 
         result.setSuccess(true);
         result.setMessage(Type.OK);
@@ -326,9 +202,6 @@ public class UserController {
         map.remove("password");
         map.remove("salt");
         map.put("createTime", user.getCreateTime());
-        if(!user.getRate().isShow()) {
-            map.put("isManager", true);
-        }
 
 		result.setSuccess(true);
 		result.setMessage(Type.OK);
@@ -359,12 +232,6 @@ public class UserController {
 		if(profile != null) {
             String hash = FileManager.save(profile, user.getUserId());
             user.setProfileImage(hash);
-        }
-
-        // 명함 넣기
-        if(nameCard != null) {
-            String hash = FileManager.save(nameCard, user.getUserId());
-            user.setNameCard(hash);
         }
 
 		UserRepo.save(user);
@@ -399,8 +266,8 @@ public class UserController {
 
     	String salt = user.getSalt();
     	String email = user.getEmail();
-    	String nowPassword = (SHA256Util.encrypt(salt + password));
-    	User userinfo = UserRepo.getUserByEmailAndPassword(email, nowPassword);
+    	String newSaltedPassword = (SHA256Util.encrypt(salt + password));
+    	User userinfo = UserRepo.findUserByEmailAndPassword(email, newSaltedPassword);
     	if(userinfo == null) {
     		result.setSuccess(false);
             result.setMessage(Auth.PASSWORD_CHANGE_FAIL);
@@ -448,7 +315,7 @@ public class UserController {
 
         VerifyRepo.deleteAllByUserId(user.getUserId());
 
-        UserManager.sendJoinVerifyEmail(user);
+        UserService.sendJoinVerifyEmail(user);
 
         result.setSuccess(true);
         result.setMessage(Type.OK);
@@ -470,7 +337,7 @@ public class UserController {
 
         if(verify == null) {
             result.setSuccess(false);
-            result.setMessage(kr.njbridge.core.Type.Verify.INVALID_VERIFY_TOKEN);
+            result.setMessage(me.huiya.core.Type.Verify.INVALID_VERIFY_TOKEN);
             return result;
         }
 
@@ -484,7 +351,7 @@ public class UserController {
 
         if (verify.getExpire().before(new Date())) {
             result.setSuccess(false);
-            result.setMessage(kr.njbridge.core.Type.Verify.VERIFY_TOKEN_EXPIRED);
+            result.setMessage(me.huiya.core.Type.Verify.VERIFY_TOKEN_EXPIRED);
             return result;
         }
 
@@ -502,123 +369,6 @@ public class UserController {
 
         HashMap<String, Object> hashMap = new HashMap<>();
         hashMap.put("url", "/login");
-
-        result.setSuccess(true);
-        result.setMessage(API.OK);
-        result.setResult(hashMap);
-        return result;
-    }
-
-    @GetMapping("/list")
-    @ManagerAuthority
-    public Result getUserList(
-        @PageableDefault(page = 0, size = 10, sort = "createTime", direction = Sort.Direction.DESC) Pageable paging,
-        @RequestParam(required = false) HashMap<String, Object> searchParams
-    ) throws Exception {
-        Result result = new Result();
-
-        result.setSuccess(false);
-        result.setMessage(Type.RESULT_NOT_SET);
-
-        Page<UserBoard> list = UserManager.getUserBoardList(paging, searchParams);
-
-        if (list != null) {
-            result.setSuccess(true);
-            result.setMessage(Http.OK);
-            result.setResult(list);
-        } else {
-            throw new ServerErrorException(null);
-        }
-
-        return result;
-    }
-
-    @GetMapping("/pay")
-    public Result getPayInfo(
-        @RequestHeader(value = "Authorization") String token,
-        @RequestParam String type
-    ) throws Exception {
-        Result result = new Result();
-
-        //토큰 아이디 확인
-        HashMap<String, Object> info = JWTManager.read(token);
-        User user = UserRepo.findUserByUserId((Integer) info.get("id"));
-
-        kr.njbridge.tradeinfo.Type.Pay payType = null;
-
-        try {
-            payType = kr.njbridge.tradeinfo.Type.Pay.valueOf(type.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new ParamMismatchException(null);
-        }
-
-        List<PaySimple> list = PaySimpleRepo.getPayByUserId(user.getUserId(), payType.name(), PageRequest.of(0, 1));
-        PaySimple paySimple = null;
-        if(list.size() > 0) {
-            paySimple = list.get(0);
-        }
-
-        HashMap<String, Object> hashMap = new HashMap<>();
-        hashMap.put("isPayed", paySimple != null);
-        hashMap.put("pay", paySimple);
-
-        result.setSuccess(true);
-        result.setMessage(API.OK);
-        result.setResult(hashMap);
-        return result;
-    }
-
-    @GetMapping("/search")
-    public Result searchNickName(
-        @RequestHeader(value = "Authorization") String token,
-        @PageableDefault(page = 0, size = 10, sort = "userId", direction = Sort.Direction.DESC) Pageable paging,
-        @RequestParam String nickName
-    ) throws Exception {
-        Result result = new Result();
-
-        HashMap<String, Object> info = JWTManager.read(token);
-        User user = UserRepo.findUserByUserId((Integer) info.get("id"));
-
-        HashMap<String, Object> search = new HashMap<>();
-        search.put("NICKNAME", nickName);
-        search.put("WITHOUT_EMAIL", user.getEmail());
-        Page<UserBoard> list = UserManager.getUserBoardList(paging, search);
-
-        if (list != null) {
-            result.setSuccess(true);
-            result.setMessage(Http.OK);
-            result.setResult(list);
-        } else {
-            throw new ServerErrorException(null);
-        }
-        return result;
-    }
-
-    @PostMapping("/find/id")
-    @WithOutAuth
-    public Result findId(
-        @RequestBody HashMap<String, Object> param
-    ) throws Exception {
-        Result result = new Result();
-        HashMap<String, Object> hashMap = new HashMap<>();
-
-        String name = (String) param.get("name");
-        String phone = (String) param.get("phone");
-
-        if(name == null || name.equals("")
-        || phone == null || phone.equals("")) {
-            throw new ParamRequiredException(null);
-        }
-
-        User user = UserRepo.findUserByNameAndPhone(name, phone);
-
-        if(user == null) {
-            result.setSuccess(false);
-            result.setMessage(API.USER_EMPTY);
-            return result;
-        }
-
-        hashMap.put("email", Common.emailMasking(user.getEmail()));
 
         result.setSuccess(true);
         result.setMessage(API.OK);
@@ -644,7 +394,7 @@ public class UserController {
             throw new ParamRequiredException(null);
         }
 
-        User user = UserRepo.findUserByEmailAndNameAndPhone(email, name, phone);
+        User user = UserRepo.findUserByEmail(email);
 
         if(user == null) {
             result.setSuccess(false);
@@ -653,7 +403,7 @@ public class UserController {
         }
 
         // 이메일 인증 메일 발송
-        UserManager.sendPasswordResetEmail(user);
+        UserService.sendPasswordResetEmail(user);
 
         result.setSuccess(true);
         result.setMessage(Type.OK);
@@ -684,7 +434,7 @@ public class UserController {
         // 토큰 정보가 없을때
         if(verify == null) {
             result.setSuccess(false);
-            result.setMessage(kr.njbridge.core.Type.Verify.INVALID_VERIFY_TOKEN);
+            result.setMessage(me.huiya.core.Type.Verify.INVALID_VERIFY_TOKEN);
             return result;
         }
 
@@ -700,7 +450,7 @@ public class UserController {
         // 토큰 만료시
         if (verify.getExpire().before(new Date())) {
             result.setSuccess(false);
-            result.setMessage(kr.njbridge.core.Type.Verify.VERIFY_TOKEN_EXPIRED);
+            result.setMessage(me.huiya.core.Type.Verify.VERIFY_TOKEN_EXPIRED);
             return result;
         }
 
@@ -730,7 +480,7 @@ public class UserController {
         HashMap<String, Object> info = JWTManager.read(token);
 //        User user = UserRepo.findUserByUserId((Integer) info.get("id"));
 
-        if(UserManager.leaveUser((Integer) info.get("id"))) {
+        if(UserService.leaveUser((Integer) info.get("id"))) {
             HashMap<String, Object> hashMap = new HashMap<>();
             hashMap.put("delete", true);
             result.set(true, API.OK, hashMap);

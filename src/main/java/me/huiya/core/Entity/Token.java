@@ -26,6 +26,7 @@ import java.util.Date;
 public class Token {
 
     @Id
+    @Column(length = 1024)
     private String token;
 
     @Column(nullable = false)

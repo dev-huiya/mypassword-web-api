@@ -1,5 +1,6 @@
 package me.huiya.core.Entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -12,6 +13,9 @@ public class Result {
     private Boolean success = false;
     private Enum message = Type.RESULT_NOT_SET;
     private Object resultData = null;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String errorMessage = null;
 
     public void setResult(Object resultData) {
         this.resultData = resultData;
@@ -30,6 +34,13 @@ public class Result {
         setResultData(resultData);
     }
 
+    public void set(Boolean success, Enum message, Object resultData, String errorMessage) {
+        setSuccess(success);
+        setMessage(message);
+        setResultData(resultData);
+        setErrorMessage(errorMessage);
+    }
+
     public Result() {
     }
 
@@ -42,5 +53,12 @@ public class Result {
         setSuccess(success);
         setMessage(message);
         setResultData(resultData);
+    }
+
+    public Result(Boolean success, Enum message, Object resultData, String errorMessage) {
+        setSuccess(success);
+        setMessage(message);
+        setResultData(resultData);
+        setErrorMessage(errorMessage);
     }
 }

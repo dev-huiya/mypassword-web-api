@@ -1,4 +1,4 @@
-package kr.njbridge.core.Type;
+package me.huiya.core.Type;
 
 public enum Verify {
 
