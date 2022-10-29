@@ -6,7 +6,7 @@
     Bolierplate Template for SpringBoot + JPA + Hibernate
   </p>
 
-  <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/dev-huiya/spring-boot-core">
+  <img alt="GitHub tag (latest by date)" src="https://img.shields.io/github/v/tag/dev-huiya/spring-boot-core?label=version">
   <img src="https://img.shields.io/github/stars/dev-huiya/spring-boot-core" alt="stars" />
   <img src="https://img.shields.io/github/issues/dev-huiya/spring-boot-core" alt="open issues" />
   <img src="https://img.shields.io/github/license/dev-huiya/spring-boot-core" alt="license" />
