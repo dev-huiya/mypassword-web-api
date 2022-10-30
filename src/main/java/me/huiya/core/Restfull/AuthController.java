@@ -1,6 +1,7 @@
 package me.huiya.core.Restfull;
 
 import me.huiya.core.Common.Common;
+import me.huiya.core.Common.CommonObjectUtils;
 import me.huiya.core.Common.JWTManager;
 import me.huiya.core.Common.UserAgentParser;
 import me.huiya.core.Config.WithOutAuth;
@@ -24,6 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.beans.ConstructorProperties;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping(value="/auth")
@@ -95,10 +97,9 @@ public class AuthController {
             User finalUser = user;
             newToken = JWTManager.create(true, user, data, (datalist) -> {
                 // token info claim
+                datalist.remove("masterKey");
                 datalist.put("nickname", finalUser.getNickName());
                 datalist.put("email", finalUser.getEmail());
-                datalist.put("ip", Common.getClientIP(request));
-                datalist.put("userAgent", UserAgentParser.getUserAgent(request));
             });
         } else {
             // 리프레시 토큰 정보가 디비에 없음.
@@ -239,8 +240,6 @@ public class AuthController {
             // token info claim
             datalist.put("nickname", finalUser.getNickName());
             datalist.put("email", finalUser.getEmail());
-            datalist.put("ip", Common.getClientIP(request));
-            datalist.put("userAgent", UserAgentParser.getUserAgent(request));
         });
 
         if(token == null) {
