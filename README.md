@@ -19,5 +19,5 @@
 Java >= 17
 
 ## :scroll: Documentation
-추가 예정
+[docs](API.md)
 
