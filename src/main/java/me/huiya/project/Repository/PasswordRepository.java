@@ -10,6 +10,6 @@ public interface PasswordRepository extends JpaRepository<Password, Integer> {
     public Password findAllByIdAndUserId(Integer id, Integer userId);
 
     // 리스트에서는 비밀번호를 감춘다.
-    @Query("SELECT new Password(p.id, p.userId, p.url, p.username) FROM Password p WHERE p.userId = :userId")
+    @Query("SELECT new Password(p.id, p.userId, p.url, p.protocol, p.host, p.port, p.path, p.query, p.username) FROM Password p WHERE p.userId = :userId")
     public Page<Password> getListByUserId(Integer userId, Pageable pageable);
 }

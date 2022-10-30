@@ -10,7 +10,6 @@ import java.util.Random;
 
 public class Common {
 
-
     /**
      * 안전한 랜덤 hex 문자열을 생성하는 메소드.
      *

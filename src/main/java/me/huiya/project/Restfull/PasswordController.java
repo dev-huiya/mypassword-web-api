@@ -108,7 +108,8 @@ public class PasswordController {
         password.setUrl(_url);
         password.setProtocol(url.getProtocol());
         password.setHost(url.getHost());
-        password.setPort(url.getPort());
+        int port = url.getPort();
+        password.setPort(port > 0 ? port : null);
         password.setPath(url.getPath());
         password.setQuery(url.getQuery());
 
@@ -137,10 +138,13 @@ public class PasswordController {
         //토큰 아이디 확인
         HashMap<String, Object> info = JWTManager.read(token);
         User user = UserRepo.findUserByUserId((Integer) info.get("id"));
+        Token tokenEntity = TokenRepo.getTokenByToken(token.replace(JWTManager.HEADER_TOKEN_KEY, ""));
 
         Password password = PasswordRepo.findAllByIdAndUserId(passwordId, user.getUserId());
 
         if(password != null) {
+            password.setPassword(Encrypt.serverToClient(password.getPassword(), tokenEntity));
+            password.setUsername(Encrypt.serverToClient(password.getUsername(), tokenEntity));
             result.set(true, API.OK, password);
         } else {
             result.set(false, API.DATA_NOT_FOUND);

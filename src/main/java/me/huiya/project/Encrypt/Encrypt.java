@@ -1,13 +1,10 @@
 package me.huiya.project.Encrypt;
 
-import me.huiya.core.Common.Common;
 import me.huiya.core.Common.JWTManager;
 import me.huiya.core.Encrypt.AES256Util;
 import me.huiya.core.Encrypt.SHA256Util;
 import me.huiya.core.Entity.Token;
 import me.huiya.core.Repository.TokenRepository;
-import me.huiya.core.Repository.UserRepository;
-import me.huiya.project.Repository.PasswordRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -37,7 +34,7 @@ public class Encrypt {
 
     public static String encrypt(String plainText, String publicKey) {
 
-        // 퍼블릭키를 해시한 후 32바이트로 잘라내어 사용함.
+        // 퍼블릭키를 해시한 후 32바이트로 잘라내어 키로 사용함.
         return AES256Util.encrypt(
             plainText,
             getTokenKey(publicKey),
@@ -81,9 +78,9 @@ public class Encrypt {
                 ),
                 AES_IV
             ),
-            // 재 암호화용 encryptKey (클라이언트와 공유된 키 복호화
+            // 재 암호화용 sharedKey (클라이언트와 공유된 키 복호화
             AES256Util.decrypt(
-                token.getEncryptKey(),
+                token.getSharedKey(),
                 tokenKey,
                 AES_IV
             ),
@@ -99,13 +96,36 @@ public class Encrypt {
     public static String clientToServer(String encryptedText, Token token) {
         String tokenKey = getTokenKey(token.getPublicKey());
 
+        String sharedKey = AES256Util.decrypt(
+                token.getSharedKey(),
+                tokenKey,
+                AES_IV
+        );
+
+        String userInputText = AES256Util.decrypt(
+                encryptedText,
+                // 클라이언트와 공유된 키 복호화
+                AES256Util.decrypt(
+                        token.getSharedKey(),
+                        tokenKey,
+                        AES_IV
+                ),
+                AES_IV
+        );
+
+        String userMasterKey = AES256Util.decrypt(
+                token.getMasterKey(),
+                tokenKey,
+                AES_IV
+        );
+
         return AES256Util.encrypt(
             // 민감정보 복호화
             AES256Util.decrypt(
                 encryptedText,
                 // 클라이언트와 공유된 키 복호화
                 AES256Util.decrypt(
-                    token.getEncryptKey(),
+                    token.getSharedKey(),
                     tokenKey,
                     AES_IV
                 ),
