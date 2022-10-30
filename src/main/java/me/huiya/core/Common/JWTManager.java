@@ -36,7 +36,7 @@ import java.util.function.Consumer;
 @Component
 public class JWTManager {
 
-    public final String HEADER_TOKEN_KEY = "Bearer ";
+    public final static String HEADER_TOKEN_KEY = "Bearer ";
 
     private String UI_SERVER_URL;
     private String API_SERVER_URL;
@@ -108,7 +108,14 @@ public class JWTManager {
 
             // 이 토큰과의 통신에서 사용할 데이터 암호화 키
             // 퍼블릭키를 해시한 후 32바이트로 잘라내어 사용함.
-            String encryptKey = Encrypt.encrypt(Common.createSecureRandom(32), rsa.getPublic());
+            String sharedKey = Encrypt.encrypt(Common.createSecureRandom(32), rsa.getPublic());
+
+            System.out.println("sharedKey key: " + sharedKey);
+            System.out.println("public key: " + rsa.getPublic());
+            System.out.println("public hashed: " + SHA256Util.encrypt(rsa.getPublic()));
+            System.out.println("public hashed 32: " + SHA256Util.encrypt(rsa.getPublic()).substring(0, 32));
+
+            System.out.println("sharedKey: " + AES256Util.decrypt(sharedKey, SHA256Util.encrypt(rsa.getPublic()).substring(0, 32), AES_IV));
 
             // 현재 시간
             Date currentDate = new Date();
@@ -122,7 +129,11 @@ public class JWTManager {
             // 토큰에 넣을 유저 정보 준비
             HashMap<String, Object> userInfo = new HashMap<>();
 
-            userInfo.put("encryptKey", encryptKey);
+            // 민감한 정보
+            userInfo.put("id", AES256Util.encrypt(Integer.toString(user.getUserId())));
+            
+            // 기본 정보
+            userInfo.put("sharedKey", sharedKey);
 
             // 토큰에 람다식으로 값 입력
             setClaim.accept(userInfo);
@@ -159,8 +170,8 @@ public class JWTManager {
             token.setRefreshToken(refreshToken);
 
             // add project code
-            token.setEncryptKey(encryptKey);
-            token.setMasterKey(Encrypt.encrypt((String) data.get("masterKey"), rsa.getPublic()));
+            token.setSharedKey(sharedKey);
+            token.setMasterKey(Encrypt.encrypt(AES256Util.decrypt((String) data.get("masterKey")), rsa.getPublic()));
             return token;
         } catch (JWTCreationException e){
             //Invalid Signing configuration / Couldn't convert Claims.
@@ -214,7 +225,7 @@ public class JWTManager {
 
         Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) publicKey, (RSAPrivateKey) privateKey);
         JWTVerifier verifier = JWT.require(algorithm)
-                .withIssuer("api.tradeinfo.kr")
+                .withIssuer(this.API_SERVER_URL)
                 .build(); //Reusable verifier instance
 
         return verifier.verify(token);
@@ -254,8 +265,11 @@ public class JWTManager {
         Claim jws = this.verify(token.replace(HEADER_TOKEN_KEY, "")).getClaim("info");
         if(jws != null) {
             info = (HashMap<String, Object>) jws.asMap();
-            info.put("id", Integer.parseInt(AES256Util.decrypt((String) info.get("id"))));
-            info.put("rateId", Integer.parseInt(AES256Util.decrypt((String) info.get("rateId"))));
+            
+            if(info.containsKey("id")) {
+                info.put("id", Integer.parseInt(AES256Util.decrypt((String) info.get("id"))));
+            }
+
         }
         return info;
     }

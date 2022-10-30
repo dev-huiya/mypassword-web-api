@@ -10,19 +10,18 @@ import java.util.Random;
 
 public class Common {
 
-
     /**
-     * 안전한 랜덤 문자열을 생성하는 메소드.
+     * 안전한 랜덤 hex 문자열을 생성하는 메소드.
      *
      * @param length 길이
      * @return base64 인코딩된 SecureRandom byte
      */
     public static String createSecureRandom(Integer length) {
         final Random r = new SecureRandom();
-        byte[] salt = new byte[length];
+        byte[] salt = new byte[length / 2];
         r.nextBytes(salt);
-        Base64.Encoder encoder = Base64.getEncoder();
-        return new String(encoder.encode(salt));
+
+        return byteArrayToHex(salt);
     }
 
     /**

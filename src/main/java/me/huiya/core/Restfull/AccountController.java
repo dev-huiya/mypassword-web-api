@@ -99,24 +99,9 @@ public class AccountController {
     @WithOutAuth
     public Result join(
         @RequestPart @RequestParam(required = false) MultipartFile profile,
-        @RequestPart @RequestParam(required = false) MultipartFile nameCard,
         @RequestParam(required = false, defaultValue = "") String email,
         @RequestParam(required = false, defaultValue = "") String password,
         @RequestParam(required = false, defaultValue = "") String nickName,
-        @RequestParam(required = false, defaultValue = "") String name,
-        @RequestParam(required = false, defaultValue = "") String phone,
-        @RequestParam(required = false, defaultValue = "") Integer rate,
-        @RequestParam(required = false, defaultValue = "") Boolean adAgree,
-
-        // sns 회원가입
-        @RequestParam(required = false, defaultValue = "") String snsType,
-        @RequestParam(required = false, defaultValue = "") String profileImage,
-        @RequestParam(required = false, defaultValue = "") Boolean emailVerified,
-        @RequestParam(required = false, defaultValue = "") String ci,
-        @RequestParam(required = false, defaultValue = "") String accessToken,
-        @RequestParam(required = false, defaultValue = "") Long accessTokenExpire,
-        @RequestParam(required = false, defaultValue = "") String refreshToken,
-        @RequestParam(required = false, defaultValue = "") Long refreshTokenExpire,
 
         // 리캡챠
         @RequestParam(required = false, defaultValue = "") String recaptchaToken
@@ -128,7 +113,8 @@ public class AccountController {
         if(
             email == null
             || email.equals("")
-//            || password == null
+            || password == null
+            || password.equals("")
             || nickName == null
             || nickName.equals("")
         ) {

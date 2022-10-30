@@ -23,22 +23,25 @@ public class Result {
 
 //    public Object getResult() { return this.resultData; }
 
-    public void set(Boolean success, Enum message) {
+    public Result set(Boolean success, Enum message) {
         setSuccess(success);
         setMessage(message);
+        return this;
     }
 
-    public void set(Boolean success, Enum message, Object resultData) {
+    public Result set(Boolean success, Enum message, Object resultData) {
         setSuccess(success);
         setMessage(message);
         setResultData(resultData);
+        return this;
     }
 
-    public void set(Boolean success, Enum message, Object resultData, String errorMessage) {
+    public Result set(Boolean success, Enum message, Object resultData, String errorMessage) {
         setSuccess(success);
         setMessage(message);
         setResultData(resultData);
         setErrorMessage(errorMessage);
+        return this;
     }
 
     public Result() {
