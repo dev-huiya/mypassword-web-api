@@ -1,9 +1,22 @@
 package me.huiya.core.Encrypt;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
+import java.io.UnsupportedEncodingException;
 import java.security.*;
+import java.security.spec.MGF1ParameterSpec;
 import java.util.Base64;
 
 public class RSAUtils {
+
+    public enum Key {
+        PUBLIC,
+        PRIVATE
+    }
 
     private PublicKey publicKey;
     private PrivateKey privateKey;
@@ -53,6 +66,4 @@ public class RSAUtils {
     public PrivateKey getPrivateKey() {
         return privateKey;
     }
-
-    // TODO: 암복호화 수행 메소드 필요함.
 }

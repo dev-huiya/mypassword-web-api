@@ -5,6 +5,7 @@ import me.huiya.core.Common.CommonObjectUtils;
 import me.huiya.core.Common.FileManager;
 import me.huiya.core.Common.JWTManager;
 import me.huiya.core.Config.WithOutAuth;
+import me.huiya.core.Encrypt.AES256Util;
 import me.huiya.core.Encrypt.SHA256Util;
 import me.huiya.core.Entity.Result;
 import me.huiya.core.Entity.User;
@@ -17,6 +18,7 @@ import me.huiya.core.Service.UserService;
 import me.huiya.core.Type.API;
 import me.huiya.core.Type.Auth;
 import me.huiya.core.Type.Type;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -39,6 +41,11 @@ public class AccountController {
     private static Email EmailService;
     private static VerifyRepository VerifyRepo;
     private static JWTManager JWTManager;
+
+    private static String AES_IV;
+
+    @Value("${core.AES-iv}")
+    public void setIV(String iv) { AES_IV = iv; }
 
     @ConstructorProperties({
         "UserRepository",
@@ -161,6 +168,10 @@ public class AccountController {
 
         user.setNickName(nickName);
         user.setEmailVerify(false);
+        // AES 키는 일정 길이(32바이트)가 필요해서 패스워드를 SHA256(64byte) 후 32로 잘라서 암호화 키로 사용함.
+        // 2022-10-30 19:41 Hawon Kim
+        String connectionKey = SHA256Util.encrypt(password).substring(0, 32);
+        user.setMasterKey(AES256Util.encrypt(Common.createSecureRandom(32), connectionKey, AES_IV));
 
         // 유저 저장
         user = UserRepo.save(user);
@@ -403,7 +414,7 @@ public class AccountController {
         }
 
         // 이메일 인증 메일 발송
-        UserService.sendPasswordResetEmail(user);
+//        UserService.sendPasswordResetEmail(user);
 
         result.setSuccess(true);
         result.setMessage(Type.OK);

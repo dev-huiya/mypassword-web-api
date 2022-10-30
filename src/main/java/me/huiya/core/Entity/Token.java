@@ -78,4 +78,10 @@ public class Token {
     @Column(insertable = false)
     @JsonFormat(shape= JsonFormat.Shape.STRING, pattern="yyyy-MM-dd HH:mm:ss.SSS", timezone="Asia/Seoul")
     private Date createTime;
+
+    @Column(nullable = false)
+    private String encryptKey;
+
+    @Column(nullable = false)
+    private String masterKey;
 }

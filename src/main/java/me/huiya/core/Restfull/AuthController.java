@@ -4,6 +4,8 @@ import me.huiya.core.Common.Common;
 import me.huiya.core.Common.JWTManager;
 import me.huiya.core.Common.UserAgentParser;
 import me.huiya.core.Config.WithOutAuth;
+import me.huiya.core.Encrypt.AES256Util;
+import me.huiya.core.Encrypt.SHA256Util;
 import me.huiya.core.Entity.Result;
 import me.huiya.core.Entity.Token;
 import me.huiya.core.Entity.User;
@@ -14,6 +16,8 @@ import me.huiya.core.Repository.UserRepository;
 import me.huiya.core.Service.UserService;
 import me.huiya.core.Type.Auth;
 import me.huiya.core.Type.Http;
+import me.huiya.project.Encrypt.Encrypt;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -32,6 +36,11 @@ public class AuthController {
     private static UserRepository UserRepo;
     private static JWTManager JWTManager;
     private static UserService UserService;
+
+    private static String AES_IV;
+
+    @Value("${core.AES-iv}")
+    public void setIV(String iv) { AES_IV = iv; }
 
     @ConstructorProperties({
         "TokenRepository",
@@ -78,8 +87,19 @@ public class AuthController {
 
             HashMap<String, Object> data = new HashMap<>();
             data.put("ip", Common.getClientIP(request));
-            data.put("userAgent", browser);
-            newToken = JWTManager.create(true, user, data);
+            data.put("userAgent", UserAgentParser.getUserAgent(request));
+            // 사용자 마스터키를 풀어서 서버 AES키로 암호화
+            data.put("masterKey", AES256Util.encrypt(
+                Encrypt.decrypt(token.getMasterKey(), token.getPublicKey())
+            ));
+            User finalUser = user;
+            newToken = JWTManager.create(true, user, data, (datalist) -> {
+                // token info claim
+                datalist.put("nickname", finalUser.getNickName());
+                datalist.put("email", finalUser.getEmail());
+                datalist.put("ip", Common.getClientIP(request));
+                datalist.put("userAgent", UserAgentParser.getUserAgent(request));
+            });
         } else {
             // 리프레시 토큰 정보가 디비에 없음.
             // refresh api가 너무 빨리 두번 연속으로 호출되는 경우
@@ -206,7 +226,22 @@ public class AuthController {
         HashMap<String, Object> data = new HashMap<>();
         data.put("ip", Common.getClientIP(request));
         data.put("userAgent", UserAgentParser.getUserAgent(request));
-        Token token = JWTManager.create(autoLogin, user, data);
+        // 사용자 마스터키를 풀어서 서버 AES키로 암호화
+        data.put("masterKey", AES256Util.encrypt(
+            AES256Util.decrypt(
+                user.getMasterKey(),
+                SHA256Util.encrypt(password).substring(0, 32),
+                AES_IV
+            )
+        ));
+        User finalUser = user;
+        Token token = JWTManager.create(autoLogin, user, data, (datalist) -> {
+            // token info claim
+            datalist.put("nickname", finalUser.getNickName());
+            datalist.put("email", finalUser.getEmail());
+            datalist.put("ip", Common.getClientIP(request));
+            datalist.put("userAgent", UserAgentParser.getUserAgent(request));
+        });
 
         if(token == null) {
             // 토큰이 생성되지 못했음.

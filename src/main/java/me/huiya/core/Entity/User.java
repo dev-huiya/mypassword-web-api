@@ -63,4 +63,8 @@ public class User {
 
     @Column(nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0", length = 1)
     private boolean emailVerify;
+
+    @Column(nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // Controller에서 값 자동 리턴시 Json에 포함되지 않도록 예외처리
+    private String masterKey;
 }

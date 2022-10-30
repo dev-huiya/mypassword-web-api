@@ -8,12 +8,14 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import me.huiya.core.Encrypt.AES256Util;
 import me.huiya.core.Encrypt.RSAUtils;
+import me.huiya.core.Encrypt.SHA256Util;
 import me.huiya.core.Entity.Token;
 import me.huiya.core.Entity.User;
 import me.huiya.core.Exception.AuthRequiredException;
 import me.huiya.core.Exception.ParamRequiredException;
 import me.huiya.core.Exception.TokenExpiredException;
 import me.huiya.core.Repository.TokenRepository;
+import me.huiya.project.Encrypt.Encrypt;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -34,16 +36,21 @@ import java.util.function.Consumer;
 @Component
 public class JWTManager {
 
-    private final String HEADER_TOKEN_KEY = "Bearer ";
+    public final String HEADER_TOKEN_KEY = "Bearer ";
 
     private String UI_SERVER_URL;
     private String API_SERVER_URL;
+
+    private static String AES_IV;
 
     @Value("${core.SERVER.UI}")
     public void setUiServerUrl(String uiServerUrl) { UI_SERVER_URL = uiServerUrl; }
 
     @Value("${core.SERVER.API}")
     public void setApiServerUrl(String apiServerUrl) { API_SERVER_URL = apiServerUrl; }
+
+    @Value("${core.AES-iv}")
+    public void setIV(String iv) { AES_IV = iv; }
 
     // Autowired 대신 추천되는 의존성 주입 방식
     private TokenRepository TokenRepo;
@@ -61,8 +68,8 @@ public class JWTManager {
      * @param data db 저장시 참조할 값. 동시에 모든 값이 info claim에 입력됨. 다른 타입 필요시 setClaim 수동 설정 할 것.
      * @return
      */
-    public Token create(Boolean isAutoLogin, User user, HashMap<String, Object> data) throws ParamRequiredException {
-        Token token  = this._create(isAutoLogin, user, (_data) -> {
+    public Token create(Boolean isAutoLogin, User user, HashMap<String, Object> data) throws ParamRequiredException, Exception {
+        Token token  = this._create(isAutoLogin, user, data, (_data) -> {
            data.forEach((key, value) -> {
                _data.put(key, value);
            });
@@ -78,15 +85,18 @@ public class JWTManager {
      * @param setClaim info claim을 설정할 람다식
      * @return
      */
-    public Token create(Boolean isAutoLogin, User user, HashMap<String, Object> data, Consumer<HashMap<String, Object>> setClaim) throws ParamRequiredException {
-        Token token  = this._create(isAutoLogin, user, setClaim);
+    public Token create(Boolean isAutoLogin, User user, HashMap<String, Object> data, Consumer<HashMap<String, Object>> setClaim) throws ParamRequiredException, Exception {
+        Token token  = this._create(isAutoLogin, user, data, setClaim);
 
         return this.save(token, data);
     }
 
-    public Token _create(Boolean isAutoLogin, User user, Consumer<HashMap<String, Object>> setClaim) throws ParamRequiredException {
+    public Token _create(Boolean isAutoLogin, User user, HashMap<String, Object> data, Consumer<HashMap<String, Object>> setClaim) throws ParamRequiredException, Exception {
         if(user == null || user.getUserId() <= 0) {
             throw new ParamRequiredException("JWTManager:: A User is required to create a JWT token.");
+        }
+        if(!data.containsKey("masterKey")) {
+            throw new ParamRequiredException("JWTManager:: masterKey required.");
         }
 
         try {
@@ -95,6 +105,10 @@ public class JWTManager {
 
             Date refreshExpireDate = null;
             String refreshToken = null;
+
+            // 이 토큰과의 통신에서 사용할 데이터 암호화 키
+            // 퍼블릭키를 해시한 후 32바이트로 잘라내어 사용함.
+            String encryptKey = Encrypt.encrypt(Common.createSecureRandom(32), rsa.getPublic());
 
             // 현재 시간
             Date currentDate = new Date();
@@ -108,13 +122,15 @@ public class JWTManager {
             // 토큰에 넣을 유저 정보 준비
             HashMap<String, Object> userInfo = new HashMap<>();
 
+            userInfo.put("encryptKey", encryptKey);
+
             // 토큰에 람다식으로 값 입력
             setClaim.accept(userInfo);
 
             if(isAutoLogin) {
                 // 자동 로그인이 켜져있으면 refresh_token 발급
 
-                // refresh token 만료시간은 1주로 설정
+                // refresh token 만료시간
                 cal.setTime(currentDate);
                 cal.add(JWTManagerCommon.getRefreshExpireTimeUnit(), JWTManagerCommon.getRefreshExpireNumeric());
                 refreshExpireDate = cal.getTime();
@@ -136,12 +152,15 @@ public class JWTManager {
 
             token.setUserId(user.getUserId());
             token.setToken(tokenStr);
-            token.setExpire(cal.getTime());
+            token.setExpire(accessExpireDate);
             token.setPublicKey(rsa.getPublic());
             token.setPrivateKey(rsa.getPrivate());
             token.setRefreshExpire(refreshExpireDate);
             token.setRefreshToken(refreshToken);
 
+            // add project code
+            token.setEncryptKey(encryptKey);
+            token.setMasterKey(Encrypt.encrypt((String) data.get("masterKey"), rsa.getPublic()));
             return token;
         } catch (JWTCreationException e){
             //Invalid Signing configuration / Couldn't convert Claims.
