@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.beans.ConstructorProperties;
@@ -175,6 +176,8 @@ public class PasswordController {
         String _username = (String) param.get("username");
         String _password = (String) param.get("password");
 
+        Boolean isEdit = false;
+
         if(_url != null && !_url.equals("")) {
             URL url = new URL(_url);
             password.setUrl(_url);
@@ -183,20 +186,26 @@ public class PasswordController {
             password.setPort(url.getPort());
             password.setPath(url.getPath());
             password.setQuery(url.getQuery());
+            isEdit = true;
         }
 
-        if(_username != null && !_password.equals("")) {
+        if(StringUtils.hasText(_username)) {
             password.setUsername(Encrypt.clientToServer(_username, tokenEntity));
+            isEdit = true;
         }
 
-        if(_password != null && !_password.equals("")) {
+        if(StringUtils.hasText(_password)) {
             password.setPassword(Encrypt.clientToServer(_password, tokenEntity));
+            isEdit = true;
         }
 
-        if(password != null) {
-            return result.set(true, API.OK, password);
+        if(isEdit) {
+            PasswordRepo.save(password);
         }
-        return result.set(false, API.UPDATE_FAIL);
+
+        HashMap<String, Object> data = new HashMap<>();
+        data.put("update", true);
+        return result.set(true, API.OK, data);
     }
 
     @DeleteMapping("/{passwordId}")
@@ -218,9 +227,8 @@ public class PasswordController {
 
         PasswordRepo.delete(password);
 
-        if(password != null) {
-            return result.set(true, API.OK, password);
-        }
-        return result.set(false, API.DELETE_FAIL);
+        HashMap<String, Object> data = new HashMap<>();
+        data.put("delete", true);
+        return result.set(true, API.OK, data);
     }
 }
