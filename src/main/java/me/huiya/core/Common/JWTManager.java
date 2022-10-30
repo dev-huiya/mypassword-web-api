@@ -36,7 +36,7 @@ import java.util.function.Consumer;
 @Component
 public class JWTManager {
 
-    public final String HEADER_TOKEN_KEY = "Bearer ";
+    public final static String HEADER_TOKEN_KEY = "Bearer ";
 
     private String UI_SERVER_URL;
     private String API_SERVER_URL;
