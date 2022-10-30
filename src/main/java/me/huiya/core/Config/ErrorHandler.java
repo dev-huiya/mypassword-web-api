@@ -10,6 +10,7 @@ import me.huiya.core.Type.Auth;
 import me.huiya.core.Type.Http;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,6 +27,15 @@ public class ErrorHandler {
     // 필수 파라매터 누락됨
     @ExceptionHandler({ParamRequiredException.class, MissingServletRequestParameterException.class})
     public ResponseEntity<Result> ParamRequired() {
+        Result result = new Result();
+        result.setSuccess(false);
+        result.setMessage(API.PARAM_REQUIRED);
+        return ResponseEntity.status(HttpStatus.OK).body(result);
+    }
+
+    // post, put인데 request body가 없음
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Result> BodyMissing() {
         Result result = new Result();
         result.setSuccess(false);
         result.setMessage(API.PARAM_REQUIRED);
