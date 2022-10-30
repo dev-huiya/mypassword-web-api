@@ -9,9 +9,11 @@ import me.huiya.core.Repository.TokenRepository;
 import me.huiya.core.Repository.UserRepository;
 import me.huiya.project.Repository.PasswordRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.beans.ConstructorProperties;
 
+@Component
 public class Encrypt {
 
     private static TokenRepository TokenRepo;
@@ -35,17 +37,10 @@ public class Encrypt {
 
     public static String encrypt(String plainText, String publicKey) {
 
-        System.out.println("encrypted key: " + plainText);
-        System.out.println("public key: " + publicKey);
-        System.out.println("public hashed: " + SHA256Util.encrypt(publicKey));
-        System.out.println("public hashed 32: " + SHA256Util.encrypt(publicKey).substring(0, 32));
-
-        System.out.println("encryptKey: " + AES256Util.decrypt(plainText, SHA256Util.encrypt(publicKey).substring(0, 32), AES_IV));
-
         // 퍼블릭키를 해시한 후 32바이트로 잘라내어 사용함.
         return AES256Util.encrypt(
             plainText,
-                getTokenKey(publicKey),
+            getTokenKey(publicKey),
             AES_IV
         );
     }
@@ -57,7 +52,7 @@ public class Encrypt {
     public static String decrypt(String encryptedText, String publicKey) {
         return AES256Util.decrypt(
             encryptedText,
-                getTokenKey(publicKey),
+            getTokenKey(publicKey),
             AES_IV
         );
     }
