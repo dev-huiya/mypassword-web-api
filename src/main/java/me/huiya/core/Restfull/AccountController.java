@@ -113,7 +113,8 @@ public class AccountController {
         if(
             email == null
             || email.equals("")
-//            || password == null
+            || password == null
+            || password.equals("")
             || nickName == null
             || nickName.equals("")
         ) {
