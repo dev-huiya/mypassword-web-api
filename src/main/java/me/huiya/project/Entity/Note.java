@@ -1,15 +1,18 @@
 package me.huiya.project.Entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import me.huiya.project.Type.NoteType;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
 import javax.persistence.*;
+import java.util.Date;
 
 @Getter
 @Setter
@@ -37,4 +40,16 @@ public class Note {
 
     @Column(columnDefinition = "TEXT")
     private String contents;
+
+    @CreationTimestamp
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(insertable = false)
+    @JsonFormat(shape= JsonFormat.Shape.STRING, pattern="yyyy-MM-dd HH:mm:ss.SSS", timezone="Asia/Seoul")
+    private Date createTime;
+
+    //    @UpdateTimestamp
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column
+    @JsonFormat(shape= JsonFormat.Shape.STRING, pattern="yyyy-MM-dd HH:mm:ss.SSS", timezone="Asia/Seoul")
+    private Date updateTime;
 }
