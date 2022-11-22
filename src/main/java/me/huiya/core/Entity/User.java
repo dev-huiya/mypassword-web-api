@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import me.huiya.core.Entity.AESCryptConverter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
@@ -48,6 +49,7 @@ public class User {
     @JsonIgnore // Controller에서 값 자동 리턴시 Json에 포함되지 않도록 예외처리
     private String salt;
 
+    @CreationTimestamp
     @Temporal(TemporalType.TIMESTAMP)
     @Column(insertable = false, updatable = false)
     @JsonFormat(shape= JsonFormat.Shape.STRING, pattern="yyyy-MM-dd HH:mm:ss.SSS", timezone="Asia/Seoul")
