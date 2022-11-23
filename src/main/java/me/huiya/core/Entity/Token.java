@@ -62,7 +62,7 @@ public class Token {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Date expire;
 
-    @Column(length = 64, nullable = false)
+    @Column(length = 64, nullable = true)
     @Convert(converter = AESCryptConverter.class) // 암호화
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String refreshToken;
