@@ -12,6 +12,7 @@ import me.huiya.core.Type.API;
 import me.huiya.project.Encrypt.Encrypt;
 import me.huiya.project.Entity.Password;
 import me.huiya.project.Repository.PasswordRepository;
+import org.apache.commons.validator.routines.UrlValidator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -101,6 +102,11 @@ public class PasswordController {
             throw new ParamRequiredException("All values are required when saving the password");
         }
 
+        UrlValidator urlValidator = new UrlValidator();
+        if(!urlValidator.isValid(_url)) {
+            return result.set(false, me.huiya.project.Type.Password.URL_INVALID);
+        }
+
         URL url = new URL(_url);
         Token tokenEntity = TokenRepo.getTokenByToken(token.replace(JWTManager.HEADER_TOKEN_KEY, ""));
 
@@ -179,6 +185,12 @@ public class PasswordController {
         Boolean isEdit = false;
 
         if(_url != null && !_url.equals("")) {
+
+            UrlValidator urlValidator = new UrlValidator();
+            if(!urlValidator.isValid(_url)) {
+                return result.set(false, me.huiya.project.Type.Password.URL_INVALID);
+            }
+
             URL url = new URL(_url);
             password.setUrl(_url);
             password.setProtocol(url.getProtocol());
