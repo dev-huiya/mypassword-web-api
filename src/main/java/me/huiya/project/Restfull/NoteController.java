@@ -117,6 +117,7 @@ public class NoteController {
         if(note.getId() != null) {
             HashMap<String, Object> data = new HashMap<>();
             data.put("success", true);
+            data.put("id", note.getId());
             result.set(true, API.OK, data);
         } else {
             result.set(false, API.CREATE_FAIL);

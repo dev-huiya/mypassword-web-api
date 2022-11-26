@@ -128,6 +128,7 @@ public class PasswordController {
         if(password.getId() != null) {
             HashMap<String, Object> data = new HashMap<>();
             data.put("success", true);
+            data.put("id", password.getId());
             result.set(true, API.OK, data);
         } else {
             result.set(false, API.CREATE_FAIL);
