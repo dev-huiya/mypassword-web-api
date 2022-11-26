@@ -11,6 +11,7 @@ import org.hibernate.annotations.DynamicUpdate;
 
 import javax.persistence.*;
 import java.util.Date;
+import java.util.Optional;
 
 @Getter
 @Setter
@@ -65,9 +66,12 @@ public class Password {
     @JsonFormat(shape= JsonFormat.Shape.STRING, pattern="yyyy-MM-dd HH:mm:ss.SSS", timezone="Asia/Seoul")
     private Date updateTime;
 
+    @Transient
+    private Integer count;
+
     public Password(Integer id, Integer userId,
         String url, String protocol, String host, Integer port, String path, String query,
-        String username
+        String username, Long count
     ) {
         setId(id);
         setUserId(userId);
@@ -78,5 +82,6 @@ public class Password {
         setPath(path);
         setQuery(query);
         setUsername(username);
+        setCount(Optional.ofNullable(count).orElse(0L).intValue()); // https://blog.jiniworld.me/74 1-2) Nullsafe Long to int (using intValue)
     }
 }
