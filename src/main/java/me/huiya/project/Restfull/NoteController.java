@@ -55,7 +55,7 @@ public class NoteController {
     @GetMapping({"s", "/list", "/all"})
     public Result getList(
         @RequestHeader(value = "Authorization") String token,
-        @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+        @PageableDefault(page = 0, size = 50, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) throws Exception {
         Result result = new Result();
 
