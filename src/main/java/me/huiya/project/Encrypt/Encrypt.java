@@ -96,11 +96,12 @@ public class Encrypt {
     public static String clientToServer(String encryptedText, Token token) {
         String tokenKey = getTokenKey(token.getPublicKey());
 
-        String sharedKey = AES256Util.decrypt(
-                token.getSharedKey(),
-                tokenKey,
-                AES_IV
-        );
+        // sharedKey
+//        String sharedKey = AES256Util.decrypt(
+//                token.getSharedKey(),
+//                tokenKey,
+//                AES_IV
+//        );
 
         String userInputText = AES256Util.decrypt(
                 encryptedText,
