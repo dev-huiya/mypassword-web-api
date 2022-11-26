@@ -6,6 +6,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
+
 public interface PasswordRepository extends JpaRepository<Password, Integer> {
     public Password findAllByIdAndUserId(Integer id, Integer userId);
 
@@ -15,4 +17,6 @@ public interface PasswordRepository extends JpaRepository<Password, Integer> {
 
     @Query("SELECT new Password(p.id, p.userId, p.url, p.protocol, p.host, p.port, p.path, p.query, p.username, COUNT(p.id)) FROM Password p WHERE p.userId = :userId AND p.url LIKE CONCAT('%',:search,'%') GROUP BY p.host")
     public Page<Password> getListByUserIdWithSearch(Integer userId, String search, Pageable pageable);
+
+    public List<Password> getPasswordsByUserIdAndHost(Integer userId, String host);
 }

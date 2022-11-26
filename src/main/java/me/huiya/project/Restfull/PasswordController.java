@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.beans.ConstructorProperties;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 
 @RestController
 @RequestMapping(value="/password")
@@ -91,6 +92,32 @@ public class PasswordController {
         Page<Password> list = PasswordRepo.getListByUserIdWithSearch(user.getUserId(), value, pageable);
         for(Password password : list.getContent()) {
             password.setUsername(Encrypt.serverToClient(password.getUsername(), token));
+        }
+
+        if(list != null) {
+            result.set(true, API.OK, list);
+        } else {
+            result.set(false, API.SERVER_ERROR);
+        }
+
+        return result;
+    }
+
+    @GetMapping({"/host"})
+    public Result getHosts(
+            @RequestHeader(value = "Authorization") String token,
+            @RequestParam(defaultValue = "") String value
+    ) throws Exception {
+        Result result = new Result();
+
+        //토큰 아이디 확인
+        HashMap<String, Object> info = JWTManager.read(token);
+        User user = UserRepo.findUserByUserId((Integer) info.get("id"));
+
+        List<Password> list = PasswordRepo.getPasswordsByUserIdAndHost(user.getUserId(), value);
+        for(Password password : list) {
+            password.setUsername(Encrypt.serverToClient(password.getUsername(), token));
+            password.setPassword(Encrypt.serverToClient(password.getPassword(), token));
         }
 
         if(list != null) {

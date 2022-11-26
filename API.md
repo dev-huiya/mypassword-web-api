@@ -294,6 +294,64 @@ Content-type: application/json;charset=UTF-8
 </details>
 
 <details markdown="1" style="margin-left:14px">
+<summary>GET /password/host</summary>
+
+**비밀번호 목록**
+----
+저장된 비밀번호 목록을 host로 검색합니다.
+
+* **URL**
+
+  /password/host
+
+* **Method:**
+
+  `GET`
+
+* **Request**
+  **Required:**
+  `Authorization=[Header,String] - 엑세스 토큰`
+  `value=[String] - 검색어`
+
+  **Optional:**
+
+```
+GET /password/host?value=nid.naver.com HTTP/1.1
+Host: localhost:8080
+Authorization: Bearer eyJ0eX...(로그인시 받은 엑세스 토큰)...
+
+```
+
+* **Response**
+
+* **Success Response:**
+```
+HTTP/1.1 200 OK
+Content-type: application/json;charset=UTF-8
+{
+   "success":true,
+   "message":"OK",
+   "resultData":[
+      {
+         "id":4,
+         "url":"https://nid.naver.com",
+         "protocol":"https",
+         "host":"nid.naver.com",
+         "port":null,
+         "path":"",
+         "query":null,
+         "username":"2oYZbkpkkUPfkoa1D2yp0Q==", // 암호화
+         "password":"M+KUrAVPoC0P7ML0IYjrMQ==", // 암호화
+         "createTime":null,
+         "updateTime":null,
+         "count":null
+      }
+   ]
+}
+```
+</details>
+
+<details markdown="1" style="margin-left:14px">
 <summary>POST /password</summary>
 
 **비밀번호 추가**
