@@ -76,6 +76,32 @@ public class PasswordController {
         return result;
     }
 
+    @GetMapping({"/search"})
+    public Result getSearch(
+        @RequestHeader(value = "Authorization") String token,
+        @PageableDefault(page = 0, size = 50, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
+        @RequestParam(defaultValue = "") String value
+    ) throws Exception {
+        Result result = new Result();
+
+        //토큰 아이디 확인
+        HashMap<String, Object> info = JWTManager.read(token);
+        User user = UserRepo.findUserByUserId((Integer) info.get("id"));
+
+        Page<Password> list = PasswordRepo.getListByUserIdWithSearch(user.getUserId(), value, pageable);
+        for(Password password : list.getContent()) {
+            password.setUsername(Encrypt.serverToClient(password.getUsername(), token));
+        }
+
+        if(list != null) {
+            result.set(true, API.OK, list);
+        } else {
+            result.set(false, API.SERVER_ERROR);
+        }
+
+        return result;
+    }
+
     @PostMapping({"", "/new"})
     public Result create(
         @RequestHeader(value = "Authorization") String token,

@@ -135,11 +135,11 @@ Content-type: application/json;charset=UTF-8
 
 **비밀번호 목록**
 ----
-저장된 비밀번호 목록을 불러옵니다.
+저장된 비밀번호 목록을 host로 그룹지어 불러옵니다.
 
 * **URL**
 
-  /account/signup
+  /password/all
 
 * **Method:**
 
@@ -147,6 +147,8 @@ Content-type: application/json;charset=UTF-8
 
 * **Request**
   **Required:**
+
+  `Authorization=[Header,String] - 엑세스 토큰`
 
   **Optional:**
 
@@ -175,7 +177,90 @@ Content-type: application/json;charset=UTF-8
                 "port": null,
                 "path": "/nidlogin.login",
                 "query": "mode=form&url=https%3A%2F%2Fwww.naver.com",
-                "username": "+qwHp6EwTBhYo2EZi8JNNaD0XO1RFDOcXLvLWzQ6Ip8=" // 암호화
+                "username": "+qwHp6EwTBhYo2EZi8JNNaD0XO1RFDOcXLvLWzQ6Ip8=", // 암호화
+                "count": 1
+            }
+        ],
+        "pageable": {
+            "sort": {
+                "empty": false,
+                "sorted": true,
+                "unsorted": false
+            },
+            "offset": 0,
+            "pageNumber": 0,
+            "pageSize": 10,
+            "unpaged": false,
+            "paged": true
+        },
+        "last": true,
+        "totalPages": 1,
+        "totalElements": 1,
+        "size": 10,
+        "number": 0,
+        "sort": {
+            "empty": false,
+            "sorted": true,
+            "unsorted": false
+        },
+        "first": true,
+        "numberOfElements": 1,
+        "empty": false
+    }
+}
+```
+</details>
+
+<details markdown="1" style="margin-left:14px">
+<summary>GET /password/search</summary>
+
+**비밀번호 목록**
+----
+저장된 비밀번호 목록을 host로 그룹지어 검색합니다.
+
+* **URL**
+
+  /password/search
+
+* **Method:**
+
+  `GET`
+
+* **Request**
+  **Required:**
+  `Authorization=[Header,String] - 엑세스 토큰`
+  `value=[String] - 검색어`
+
+  **Optional:**
+
+```
+GET /password/search?value=com HTTP/1.1
+Host: localhost:8080
+Authorization: Bearer eyJ0eX...(로그인시 받은 엑세스 토큰)...
+
+```
+
+* **Response**
+
+* **Success Response:**
+```
+HTTP/1.1 200 OK
+Content-type: application/json;charset=UTF-8
+{
+    "success": true,
+    "message": "OK",
+    "resultData": {
+        "content": [
+            {
+                "id": 1,
+                "url": "https://nid.naver.com/nidlogin.login?mode=form&url=https%3A%2F%2Fwww.naver.com",
+                "protocol": "https",
+                "host": "nid.naver.com",
+                "port": null,
+                "path": "/nidlogin.login",
+                "query": "mode=form&url=https%3A%2F%2Fwww.naver.com",
+                "username": "+qwHp6EwTBhYo2EZi8JNNaD0XO1RFDOcXLvLWzQ6Ip8=", // 암호화
+                "count": 1
             }
         ],
         "pageable": {
@@ -226,9 +311,10 @@ Content-type: application/json;charset=UTF-8
 * **Request**
 
   **Required:**  
-  `email=[String] - 사용자 아이디`  
-  `password=[String] - 사용자 비밀번호`  
-  `autoLogin=[Boolean] - 자동 로그인 여`
+  `Authorization=[Header,String] - 엑세스 토큰`
+  `url=[String] - 비밀번호를 사용할 사이트 주소`  
+  `username=[Boolean] - 사용자 아이디`
+  `password=[String] - 사용자 비밀번호`
 
   **Optional:**
 ```
@@ -282,6 +368,7 @@ Content-type: application/json;charset=UTF-8
 * **Request**
 
   **Required:**  
+  `Authorization=[Header,String] - 엑세스 토큰`
   `id=[Integer:PathVariable] - 비밀번호 번호`
 
   **Optional:**
@@ -334,6 +421,7 @@ Content-type: application/json;charset=UTF-8
 * **Request**
 
   **Required:**  
+  `Authorization=[Header,String] - 엑세스 토큰`
   `id=[Integer:PathVariable] - 비밀번호 번호`
 
   **Optional:**
@@ -388,6 +476,7 @@ Content-type: application/json;charset=UTF-8
 * **Request**
 
   **Required:**  
+  `Authorization=[Header,String] - 엑세스 토큰`
   `id=[Integer:PathVariable] - 비밀번호 번호`
 
   **Optional:**
